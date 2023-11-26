@@ -62,24 +62,17 @@ def notification():
         notification.subject = request.form['subject']
         notification.status = 'Notifications submitted'
         notification.submitted_date = datetime.utcnow()
-
         try:
+            logging.info(f'==> Prepare to add notification to ServiceBus')
             db.session.add(notification)
             db.session.commit()
-
-            attendees = Attendee.query.all()
-
-            for attendee in attendees:
-                subject = '{}: {}'.format(attendee.first_name, notification.subject)
-                send_email(attendee.email, subject, notification.message)
-
-            notification.completed_date = datetime.utcnow()
-            notification.status = 'Notified {} attendees'.format(len(attendees))
-            db.session.commit()
-
+            message = ServiceBusMessage(str(notification.id))
+            queue_client.send_messages(message)
+            logging.info(f'==> Sent notification {notification.id} to ServiceBus')
             return redirect('/Notifications')
-        except :
+        except Exception as ex:
             logging.error('log unable to save notification')
+            logging.error(ex)
 
     else:
         return render_template('notification.html')
