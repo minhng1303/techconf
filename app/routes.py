@@ -62,20 +62,38 @@ def notification():
         notification.subject = request.form['subject']
         notification.status = 'Notifications submitted'
         notification.submitted_date = datetime.utcnow()
+
         try:
             db.session.add(notification)
             db.session.commit()
-            message = ServiceBusMessage(str(notification.id))
-            queue_client.send_messages(message)
-            logging.info(f'Sent notification {notification.id} to ServiceBus')
+
+            attendees = Attendee.query.all()
+
+            for attendee in attendees:
+                subject = '{}: {}'.format(attendee.first_name, notification.subject)
+                send_email(attendee.email, subject, notification.message)
+
+            notification.completed_date = datetime.utcnow()
+            notification.status = 'Notified {} attendees'.format(len(attendees))
+            db.session.commit()
+
             return redirect('/Notifications')
-        except Exception as ex:
+        except :
             logging.error('log unable to save notification')
-            logging.error(ex)
 
     else:
         return render_template('notification.html')
 
+def send_email(email, subject, body):
+    if not app.config.get('SENDGRID_API_KEY'):
+        message = Mail(
+            from_email=app.config.get('ADMIN_EMAIL_ADDRESS'),
+            to_emails=email,
+            subject=subject,
+            plain_text_content=body)
+
+        sg = SendGridAPIClient(app.config.get('SENDGRID_API_KEY'))
+        sg.send(message)
 
 
 
