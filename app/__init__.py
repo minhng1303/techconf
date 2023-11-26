@@ -2,7 +2,7 @@ import os
 from flask import Flask, render_template, url_for, request, redirect
 from flask_sqlalchemy import SQLAlchemy 
 from azure.servicebus import QueueClient
-
+from markupsafe import escape
 
 app = Flask(__name__)
 app.config.from_object('config.DevelopmentConfig')
