@@ -78,6 +78,8 @@ def notification():
         return render_template('notification.html')
 
 def send_email(email, subject, body):
+    logging.info(f'==> Prepare to send email')
+    logging.info(app.config.get('SENDGRID_API_KEY'))
     if not app.config.get('SENDGRID_API_KEY'):
         message = Mail(
             from_email=app.config.get('ADMIN_EMAIL_ADDRESS'),
